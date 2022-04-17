@@ -29,7 +29,7 @@ def reverse_func(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authnapp', '0005_user_profile'),
+        ("authnapp", "0005_user_profile"),
     ]
 
     operations = [migrations.RunPython(forwards_func, reverse_func)]
