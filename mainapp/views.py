@@ -10,10 +10,8 @@ from .models import Contact, Product, ProductCategory
 
 def main(request):
     title = "главная"
-    products = Product.objects.filter(
-        is_active=True, category__is_active=True)[:3]
-    content = {"title": title, "products": products,
-               "media_url": settings.MEDIA_URL}
+    products = Product.objects.filter(is_active=True, category__is_active=True)[:3]
+    content = {"title": title, "products": products, "media_url": settings.MEDIA_URL}
     return render(request, "mainapp/index.html", content)
 
 
@@ -28,8 +26,7 @@ def main(request):
 
 
 def get_hot_product_list():
-    products = Product.objects.filter(
-        is_active=True, category__is_active=True).select_related("category")
+    products = Product.objects.filter(is_active=True, category__is_active=True).select_related("category")
     hot_product = random.sample(list(products), 1)[0]
     hot_list = products.exclude(pk=hot_product.pk)[:3]
     return (hot_product, hot_list)
@@ -42,8 +39,7 @@ def products(request, pk=None, page=1):
     if pk is not None:
         if str(pk) == str(0):
             category = {"pk": 0, "name": "все"}
-            products = Product.objects.filter(
-                is_active=True, category__is_active=True).order_by("price")
+            products = Product.objects.filter(is_active=True, category__is_active=True).order_by("price")
         else:
             category = get_object_or_404(ProductCategory, pk=pk)
             products = Product.objects.filter(category__pk=pk, is_active=True, category__is_active=True).order_by(
@@ -94,6 +90,5 @@ def contact(request):
     title = "о нас"
     visit_date = timezone.now()
     locations = Contact.objects.all()
-    content = {"title": title, "visit_date": visit_date,
-               "locations": locations}
+    content = {"title": title, "visit_date": visit_date, "locations": locations}
     return render(request, "mainapp/contact.html", content)
