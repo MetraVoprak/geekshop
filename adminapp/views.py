@@ -1,3 +1,6 @@
+from django.dispatch import receiver
+from django.db.models.signals import pre_save
+from django.db import connection
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -36,7 +39,8 @@ def user_create(request):
     else:
         user_form = ShopUserRegisterForm()
 
-    content = {"title": title, "update_form": user_form, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "update_form": user_form,
+               "media_url": settings.MEDIA_URL}
 
     return render(request, "adminapp/user_update.html", content)
 
@@ -47,14 +51,16 @@ def user_update(request, pk):
 
     edit_user = get_object_or_404(ShopUser, pk=pk)
     if request.method == "POST":
-        edit_form = ShopUserAdminEditForm(request.POST, request.FILES, instance=edit_user)
+        edit_form = ShopUserAdminEditForm(
+            request.POST, request.FILES, instance=edit_user)
         if edit_form.is_valid():
             edit_form.save()
             return HttpResponseRedirect(reverse("admin:user_update", args=[edit_user.pk]))
     else:
         edit_form = ShopUserAdminEditForm(instance=edit_user)
 
-    content = {"title": title, "update_form": edit_form, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "update_form": edit_form,
+               "media_url": settings.MEDIA_URL}
 
     return render(request, "adminapp/user_update.html", content)
 
@@ -72,7 +78,8 @@ def user_delete(request, pk):
         user.save()
         return HttpResponseRedirect(reverse("admin:users"))
 
-    content = {"title": title, "user_to_delete": user, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "user_to_delete": user,
+               "media_url": settings.MEDIA_URL}
 
     return render(request, "adminapp/user_delete.html", content)
 
@@ -81,7 +88,8 @@ def user_delete(request, pk):
 def categories(request):
     title = "админка/категории"
     categories_list = ProductCategory.objects.all()
-    content = {"title": title, "objects": categories_list, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "objects": categories_list,
+               "media_url": settings.MEDIA_URL}
     return render(request, "adminapp/categories.html", content)
 
 
@@ -99,15 +107,10 @@ class ProductCategoryUpdateView(LoginRequiredMixin, UpdateView):
     fields = "__all__"
 
     def get_context_data(self, **kwargs):
-        context = super(ProductCategoryUpdateView, self).get_context_data(**kwargs)
+        context = super(ProductCategoryUpdateView,
+                        self).get_context_data(**kwargs)
         context["title"] = "категории/редактирование"
         return context
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.object.is_active:
-            self.object.product_set.update(is_active=True)
-        return response
 
 
 class ProductCategoryDeleteView(LoginRequiredMixin, DeleteView):
@@ -119,7 +122,6 @@ class ProductCategoryDeleteView(LoginRequiredMixin, DeleteView):
         self.object = self.get_object()
         self.object.is_active = False
         self.object.save()
-        self.object.product_set.update(is_active=False)
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -128,7 +130,8 @@ def products(request, pk):
     title = "админка/продукт"
     category = get_object_or_404(ProductCategory, pk=pk)
     products_list = Product.objects.filter(category__pk=pk).order_by("name")
-    content = {"title": title, "category": category, "objects": products_list, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "category": category,
+               "objects": products_list, "media_url": settings.MEDIA_URL}
     return render(request, "adminapp/products.html", content)
 
 
@@ -146,7 +149,8 @@ def product_create(request, pk):
         # set initial value for form
         product_form = ProductEditForm(initial={"category": category})
 
-    content = {"title": title, "update_form": product_form, "category": category, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "update_form": product_form,
+               "category": category, "media_url": settings.MEDIA_URL}
     return render(request, "adminapp/product_update.html", content)
 
 
@@ -161,7 +165,8 @@ def product_update(request, pk):
     edit_product = get_object_or_404(Product, pk=pk)
 
     if request.method == "POST":
-        edit_form = ProductEditForm(request.POST, request.FILES, instance=edit_product)
+        edit_form = ProductEditForm(
+            request.POST, request.FILES, instance=edit_product)
         if edit_form.is_valid():
             edit_form.save()
             return HttpResponseRedirect(reverse("admin:product_update", args=[edit_product.pk]))
@@ -187,5 +192,23 @@ def product_delete(request, pk):
         product.save()
         return HttpResponseRedirect(reverse("admin:products", args=[product.category.pk]))
 
-    content = {"title": title, "product_to_delete": product, "media_url": settings.MEDIA_URL}
+    content = {"title": title, "product_to_delete": product,
+               "media_url": settings.MEDIA_URL}
     return render(request, "adminapp/product_delete.html", content)
+
+
+def db_profile_by_type(prefix, type, queries):
+    update_queries = list(filter(lambda x: type in x["sql"], queries))
+    print(f"db_profile {type} for {prefix}:")
+    [print(query["sql"]) for query in update_queries]
+
+
+@receiver(pre_save, sender=ProductCategory)
+def product_is_active_update_productcategory_save(sender, instance, **kwargs):
+    if instance.pk:
+        if instance.is_active:
+            instance.product_set.update(is_active=True)
+        else:
+            instance.product_set.update(is_active=False)
+
+        # db_profile_by_type(sender, 'UPDATE', connection.queries)
