@@ -1,4 +1,3 @@
-from django.views.decorators.cache import cache_page
 import random
 
 from django.conf import settings
@@ -6,6 +5,7 @@ from django.core.cache import cache
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.decorators.cache import cache_page
 
 from .models import Contact, Product, ProductCategory
 
@@ -40,8 +40,7 @@ def get_products():
         key = "products"
         products = cache.get(key)
         if products is None:
-            products = Product.objects.filter(
-                is_active=True, category__is_active=True).select_related("category")
+            products = Product.objects.filter(is_active=True, category__is_active=True).select_related("category")
             cache.set(key, products)
         return products
     else:
@@ -65,8 +64,7 @@ def get_products_orederd_by_price():
         key = "products_orederd_by_price"
         products = cache.get(key)
         if products is None:
-            products = Product.objects.filter(
-                is_active=True, category__is_active=True).order_by("price")
+            products = Product.objects.filter(is_active=True, category__is_active=True).order_by("price")
             cache.set(key, products)
         return products
     else:
@@ -90,8 +88,7 @@ def get_products_in_category_orederd_by_price(pk):
 def main(request):
     title = "главная"
     products = get_products()[:3]
-    content = {"title": title, "products": products,
-               "media_url": settings.MEDIA_URL}
+    content = {"title": title, "products": products, "media_url": settings.MEDIA_URL}
     return render(request, "mainapp/index.html", content)
 
 
@@ -169,6 +166,5 @@ def contact(request):
     title = "о нас"
     visit_date = timezone.now()
     locations = Contact.objects.all()
-    content = {"title": title, "visit_date": visit_date,
-               "locations": locations}
+    content = {"title": title, "visit_date": visit_date, "locations": locations}
     return render(request, "mainapp/contact.html", content)
