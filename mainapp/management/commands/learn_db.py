@@ -8,8 +8,7 @@ from mainapp.models import Product
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        test_products = Product.objects.filter(
-            Q(category__name="офис") | Q(category__name="модерн"))
+        test_products = Product.objects.filter(Q(category__name="офис") | Q(category__name="модерн"))
         print(len(test_products))
         # print(test_products.count())
         # print(test_products)
